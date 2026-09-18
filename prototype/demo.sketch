@@ -1,0 +1,25 @@
+# Blue square
+pen blue
+
+repeat 4 {
+    forward 100
+    turn 90
+}
+
+# Red star
+move 0 0
+pen red
+
+repeat 8 {
+    forward 60
+    turn 135
+}
+
+# Green partial square
+move -150 -150
+pen green
+forward 50
+turn 90
+forward 50
+turn 90
+forward 50

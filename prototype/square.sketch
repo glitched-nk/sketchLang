@@ -1,0 +1,21 @@
+# Draw a colorful pinwheel-ish pattern using a square + a star
+pen blue
+repeat 4 {
+    forward 100
+    turn 90
+}
+
+move 0 0
+pen red
+repeat 8 {
+    forward 60
+    turn 135
+}
+
+move -150 -150
+pen green
+forward 50
+turn 90
+forward 50
+turn 90
+forward 50
