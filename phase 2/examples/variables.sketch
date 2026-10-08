@@ -1,0 +1,15 @@
+# Phase 2: squares sized using variables and arithmetic expressions.
+let side = 80
+pen blue
+repeat 4 {
+    forward side
+    turn 90
+}
+
+let bigSide = side * 2
+move (side * 2), 0
+pen orange
+repeat 4 {
+    forward bigSide
+    turn 90
+}
