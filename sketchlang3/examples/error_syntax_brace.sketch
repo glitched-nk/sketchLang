@@ -1,0 +1,5 @@
+# Syntax error: the repeat block is never closed.
+pen blue
+repeat 4 {
+    forward 50
+    turn 90

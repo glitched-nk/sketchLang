@@ -1,0 +1,10 @@
+# Phase 2: a growing spiral -- "step" is reassigned every loop iteration,
+# which only works because the symbol table is updated live during IR
+# generation, not just checked once statically.
+let step = 4
+pen purple
+repeat 40 {
+    forward step
+    turn 20
+    let step = step + 2
+}

@@ -1,0 +1,19 @@
+# Plotter demo: boxes are drawn in MIRRORED pairs (left side, then right side),
+# so the pen jumps across the page between every box. The plotter optimiser
+# re-orders the strokes into two sweeps; the picture is identical.
+proc box(s) {
+    repeat 4 {
+        forward s
+        turn 90
+    }
+}
+
+pen black
+let i = 0
+repeat 10 {
+    move i * 25, 0
+    call box(15)
+    move 500 - i * 25, 0
+    call box(15)
+    let i = i + 1
+}

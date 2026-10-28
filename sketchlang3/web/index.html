@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SketchLang</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #EEF2F5;
+  --panel: #FFFFFF;
+  --ink: #14213D;
+  --muted: #5B6779;
+  --line: #D5DDE5;
+  --grid: #E3EBF1;
+  --marker: #FFD84D;
+  --ok: #0F766E;
+  --fail: #B42318;
+  --travel: #E4572E;
+  --sans: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --lh: 20px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 15px/1.45 var(--sans);
+  display: flex; flex-direction: column;
+}
+button, select, input, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--marker); outline-offset: 1px; }
+
+/* ---------- top bar ---------- */
+.top { display: flex; align-items: center; gap: 24px; padding: 12px 24px 6px; flex-wrap: wrap; }
+.brand { font-weight: 800; font-size: 24px; letter-spacing: -0.03em; margin: 0; }
+.tagline { color: var(--muted); margin: 0; flex: 1 1 280px; }
+.controls { display: flex; gap: 10px; align-items: center; }
+select#example {
+  border: 1.5px solid var(--ink); background: var(--panel); border-radius: 6px;
+  padding: 7px 10px; min-width: 250px; cursor: pointer;
+}
+.btn {
+  border: 1.5px solid var(--ink); background: var(--panel); border-radius: 6px;
+  padding: 6px 12px; cursor: pointer; font-weight: 600;
+}
+.btn:hover { background: #F4F7FA; }
+.btn.primary { background: var(--ink); color: #fff; }
+.btn.primary:hover { background: #22345C; }
+.btn.small { padding: 3px 9px; font-size: 13px; }
+
+/* ---------- pipeline strip: the one memorable element ---------- */
+.strip { display: flex; list-style: none; margin: 0; padding: 8px 24px 12px; gap: 0; }
+.strip li { flex: 1 1 0; min-width: 0; position: relative; padding: 0 14px 0 0; }
+.strip .name { display: block; font-weight: 600; font-size: 14px; }
+.strip .ms { display: block; font: 12px var(--mono); color: var(--muted); height: 16px; }
+.strip .bar { display: block; height: 5px; border-radius: 3px; background: var(--line); margin-top: 4px; position: relative; overflow: hidden; }
+.strip .bar::after { content: ""; position: absolute; inset: 0; background: var(--ok); transform: scaleX(0); transform-origin: left; }
+.strip li.ok .bar::after { transform: scaleX(1); }
+.strip li.fail .bar::after { background: var(--fail); transform: scaleX(1); }
+.strip li.fail .name { color: var(--fail); }
+.strip li.skip .bar { background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 10px); }
+.strip li.skip .name { color: var(--muted); }
+.strip.animate li.ok .bar::after, .strip.animate li.fail .bar::after {
+  animation: fill .35s ease-out backwards; animation-delay: calc(var(--i) * 90ms);
+}
+@keyframes fill { from { transform: scaleX(0); } }
+
+/* ---------- workspace ---------- */
+.work { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(300px, 40%) 1fr; gap: 14px; padding: 0 24px 20px; }
+.pane { background: var(--panel); border: 1.5px solid var(--ink); border-radius: 8px; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.editor-body { position: relative; flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 46px 1fr; overflow: hidden; }
+.gutter { background: #F6F8FA; border-right: 1px solid var(--line); overflow: hidden; padding: 10px 8px 10px 0; text-align: right; color: #8A96A6; font: 13px/var(--lh) var(--mono); user-select: none; white-space: pre; }
+#source { border: 0; resize: none; background: transparent; padding: 10px 12px; font: 13.5px/var(--lh) var(--mono); white-space: pre; overflow: auto; tab-size: 4; min-height: 0; position: relative; z-index: 1; }
+#source:focus-visible { outline: none; }
+.hl { position: absolute; left: 46px; right: 0; height: var(--lh); background: var(--marker); opacity: .55; pointer-events: none; display: none; }
+.msg { border-top: 1.5px solid var(--ink); padding: 10px 14px; min-height: 58px; font-size: 14px; }
+.msg.ok { color: var(--ok); }
+.msg.err { border-left: 6px solid var(--fail); }
+.msg b { display: block; margin-bottom: 2px; }
+.msg.err b { color: var(--fail); }
+.msg code { font: 13px var(--mono); }
+
+/* ---------- tabs ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1.5px solid var(--ink); background: #F6F8FA; }
+.tab { border: 0; background: transparent; padding: 10px 14px; cursor: pointer; font-weight: 600; color: var(--muted); border-right: 1px solid var(--line); }
+.tab[aria-selected="true"] { background: var(--panel); color: var(--ink); box-shadow: inset 0 -3px 0 var(--ink); }
+.panel { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 14px 16px; }
+.panel[hidden] { display: none; }
+.empty { color: var(--muted); padding: 24px 4px; max-width: 52ch; }
+
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; margin-left: auto; }
+.chip { font: 12.5px var(--mono); background: #F0F4F8; border: 1px solid var(--line); border-radius: 4px; padding: 2px 7px; }
+
+.paper { background-color: #fff;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px; border: 1px solid var(--line); border-radius: 4px; padding: 14px; text-align: center; }
+.paper svg { max-width: 100%; max-height: 62vh; height: auto; background: #fff; box-shadow: 0 0 0 1px var(--line); }
+
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+th { text-align: left; font-weight: 600; color: var(--muted); border-bottom: 1.5px solid var(--ink); padding: 5px 8px; }
+td { border-bottom: 1px solid var(--line); padding: 4px 8px; vertical-align: top; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+td.mono, .mono { font-family: var(--mono); font-size: 12.5px; }
+.sub { margin: 18px 0 6px; font-size: 15px; font-weight: 800; letter-spacing: -0.01em; }
+.sub:first-child { margin-top: 0; }
+.note { color: var(--muted); font-size: 13.5px; max-width: 70ch; margin: 4px 0 10px; }
+.good { color: var(--ok); font-weight: 600; }
+
+/* syntax tree */
+.tree, .tree ul { list-style: none; margin: 0; padding-left: 18px; }
+.tree { padding-left: 0; font: 13px/1.6 var(--mono); }
+.tree li { position: relative; }
+.tree summary { cursor: pointer; }
+.tree .ln { color: #8A96A6; margin-left: 10px; }
+.tree .leaf { padding-left: 14px; }
+.tree .kw { font-weight: 500; }
+
+/* IR */
+.cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+pre.code { margin: 0; font: 12.5px/1.5 var(--mono); background: #F6F8FA; border: 1px solid var(--line); border-radius: 4px; padding: 10px; overflow: auto; max-height: 46vh; white-space: pre; }
+.swatch { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: baseline; }
+
+/* plotter */
+.plots { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 12px; }
+.plot h3 { margin: 0 0 4px; font-size: 14px; }
+.plot .paper { padding: 6px; }
+.plot .paper svg { max-height: 40vh; }
+.plot output { display: block; font: 12.5px var(--mono); color: var(--muted); min-height: 18px; margin-top: 4px; }
+.legend { display: inline-flex; gap: 14px; font-size: 13px; color: var(--muted); align-items: center; }
+.legend i { display: inline-block; width: 26px; height: 0; border-top: 3px solid var(--ink); vertical-align: middle; margin-right: 5px; }
+.legend i.up { border-top: 3px dashed var(--travel); }
+label.check { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+
+/* output code */
+.seg { display: inline-flex; border: 1.5px solid var(--ink); border-radius: 6px; overflow: hidden; }
+.seg button { border: 0; background: var(--panel); padding: 5px 12px; cursor: pointer; font-weight: 600; border-right: 1px solid var(--ink); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+
+@media (max-width: 980px) {
+  .work { grid-template-columns: 1fr; grid-auto-rows: minmax(420px, auto); overflow: auto; }
+  .strip .ms { display: none; }
+  .cols, .plots { grid-template-columns: 1fr; }
+  #source { min-height: 300px; }
+}
+@media (prefers-reduced-motion: reduce) { .strip.animate li .bar::after { animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <h1 class="brand">SketchLang</h1>
+  <p class="tagline">Write a drawing as code. It compiles to SVG, PostScript and pen-plotter G-code.</p>
+  <div class="controls">
+    <label for="example" class="sr" style="position:absolute;left:-9999px">Example program</label>
+    <select id="example"></select>
+    <button class="btn primary" id="run" title="Ctrl/Cmd + Enter">Run</button>
+  </div>
+</header>
+
+<ol class="strip" id="strip" aria-label="Compiler stages"></ol>
+
+<main class="work">
+  <section class="pane" aria-label="Source code">
+    <div class="editor-body">
+      <div class="gutter" id="gutter" aria-hidden="true"></div>
+      <textarea id="source" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="SketchLang source"></textarea>
+      <div class="hl" id="hl"></div>
+    </div>
+    <div class="msg" id="msg" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="pane" aria-label="Compiler output">
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div id="panels" style="display:contents"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+/* ---------- tiny DOM helpers ---------- */
+const $ = (sel, root = document) => root.querySelector(sel);
+function h(tag, attrs = {}, ...kids) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (k === "text") el.textContent = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (v === true) el.setAttribute(k, "");
+    else if (v !== false && v != null) el.setAttribute(k, v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+}
+const fmt = n => (Math.round(n * 100) / 100).toString();
+const fmtInt = n => Number(n).toLocaleString("en-US");
+const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SVGNS = "http://www.w3.org/2000/svg";
+const COLORS = { red: "#ff0000", green: "#008000", blue: "#0000ff", black: "#000000", orange: "#ffa500", purple: "#800080", brown: "#a52a2a", pink: "#ffc0cb" };
+
+/* ---------- state ---------- */
+const STAGES = [
+  ["lexer", "Lexer"], ["parser", "Parser"], ["semantics", "Semantic check"],
+  ["ir_generation", "Run and IR"], ["optimizer", "Optimizer"], ["svg_codegen", "Back end"],
+];
+const TABS = ["Drawing", "Tokens", "Syntax tree", "Symbols", "IR", "Plotter", "Output code"];
+const slug = name => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");   // ids must not contain spaces
+const state = { data: null, tab: "Drawing", codeTarget: "svg", groupColors: true, optimise: true, anim: null };
+
+/* ---------- pipeline strip ---------- */
+function buildStrip() {
+  const strip = $("#strip");
+  STAGES.forEach(([key, label], i) => {
+    strip.append(h("li", { "data-stage": key, style: `--i:${i}` },
+      h("span", { class: "name", text: label }), h("span", { class: "ms", text: "" }), h("span", { class: "bar" })));
+  });
+}
+function paintStrip(data) {
+  const strip = $("#strip");
+  strip.classList.remove("animate");
+  void strip.offsetWidth;                                   // restart the fill animation
+  [...strip.children].forEach((li, i) => {
+    li.className = ""; $(".ms", li).textContent = "";
+    if (!data) return;
+    if (data.ok) { li.classList.add("ok"); $(".ms", li).textContent = data.timings[STAGES[i][0]].toFixed(2) + " ms"; }
+    else if (i < data.failed_strip_index) li.classList.add("ok");
+    else if (i === data.failed_strip_index) li.classList.add("fail");
+    else li.classList.add("skip");
+  });
+  if (!reduceMotion()) strip.classList.add("animate");
+}
+
+/* ---------- editor ---------- */
+const src = $("#source"), gutter = $("#gutter"), hl = $("#hl");
+function updateGutter() {
+  const n = src.value.split("\n").length;
+  gutter.textContent = Array.from({ length: n }, (_, i) => i + 1).join("\n");
+  gutter.scrollTop = src.scrollTop;
+  placeHighlight();
+}
+let errorLine = null;
+function placeHighlight() {
+  if (!errorLine) { hl.style.display = "none"; return; }
+  hl.style.display = "block";
+  hl.style.top = (10 + (errorLine - 1) * 20 - src.scrollTop) + "px";
+}
+src.addEventListener("scroll", () => { gutter.scrollTop = src.scrollTop; placeHighlight(); });
+src.addEventListener("input", () => { updateGutter(); schedule(); });
+src.addEventListener("keydown", e => {
+  if (e.key === "Tab") {
+    e.preventDefault();
+    const s = src.selectionStart;
+    src.setRangeText("    ", s, src.selectionEnd, "end");
+    updateGutter(); schedule();
+  } else if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); run(); }
+});
+let timer = null;
+function schedule() { clearTimeout(timer); timer = setTimeout(run, 450); }
+
+/* ---------- compile ---------- */
+let seq = 0;
+async function run() {
+  clearTimeout(timer);
+  const mine = ++seq;
+  let data;
+  try {
+    const res = await fetch("/api/compile", { method: "POST", body: JSON.stringify({ source: src.value, group_colors: state.groupColors }) });
+    data = await res.json();
+  } catch (e) {
+    data = { ok: false, error: { stage: "connection", message: "Cannot reach the SketchLang server. Is server.py still running?", line: null }, failed_strip_index: 0 };
+  }
+  if (mine !== seq) return;                                // a newer run superseded this one
+  state.data = data;
+  errorLine = data.ok ? null : data.error.line;
+  placeHighlight();
+  paintStrip(data);
+  paintMessage(data);
+  renderTab(state.tab);
+}
+const STAGE_LABEL = { lexical: "Lexical error", syntax: "Syntax error", semantic: "Semantic error", runtime: "Runtime error", input: "Input error", internal: "Internal error", connection: "Connection error" };
+function paintMessage(d) {
+  const m = $("#msg");
+  m.className = "msg " + (d.ok ? "ok" : "err");
+  m.replaceChildren();
+  if (d.ok) {
+    m.append(h("b", { text: "Compiled" }), `in ${d.total_ms} ms. ${fmtInt(d.ir_before_count)} instructions became ${fmtInt(d.ir_after_count)} after optimization.`);
+  } else {
+    const where = d.error.line ? ` on line ${d.error.line}` : "";
+    m.append(h("b", { text: STAGE_LABEL[d.error.stage] + where }),
+      d.error.message.replace(/^(Lexical|Syntax|Semantic|Runtime) error( \(line \d+\))?:? ?/, ""));
+  }
+}
+
+/* ---------- tabs ---------- */
+function buildTabs() {
+  const tabs = $("#tabs"), panels = $("#panels");
+  TABS.forEach(name => {
+    tabs.append(h("button", { class: "tab", role: "tab", id: "tab-" + slug(name), "aria-selected": name === state.tab, "aria-controls": "panel-" + slug(name), tabindex: name === state.tab ? 0 : -1, text: name,
+      onclick: () => selectTab(name) }));
+    panels.append(h("div", { class: "panel", role: "tabpanel", id: "panel-" + slug(name), "aria-labelledby": "tab-" + slug(name), hidden: name !== state.tab }));
+  });
+  tabs.addEventListener("keydown", e => {
+    const i = TABS.indexOf(state.tab);
+    if (e.key === "ArrowRight") selectTab(TABS[(i + 1) % TABS.length], true);
+    if (e.key === "ArrowLeft") selectTab(TABS[(i + TABS.length - 1) % TABS.length], true);
+  });
+}
+function selectTab(name, focus) {
+  stopAnim();
+  state.tab = name;
+  TABS.forEach(t => {
+    const sel = t === name;
+    const b = $("#tab-" + slug(t)); b.setAttribute("aria-selected", sel); b.tabIndex = sel ? 0 : -1;
+    $("#panel-" + slug(t)).hidden = !sel;
+    if (sel && focus) b.focus();
+  });
+  renderTab(name);
+}
+function renderTab(name) {
+  const panel = $("#panel-" + slug(name)), d = state.data;
+  panel.replaceChildren();
+  if (!d) return;
+  if (!d.ok) {
+    const where = d.error.line ? ` Fix line ${d.error.line} and the output appears here.` : "";
+    panel.append(h("p", { class: "empty", text: `Nothing to show: the program stopped at the ${d.error.stage} stage.${where}` }));
+    return;
+  }
+  ({ "Drawing": renderDrawing, "Tokens": renderTokens, "Syntax tree": renderTree, "Symbols": renderSymbols,
+     "IR": renderIR, "Plotter": renderPlotter, "Output code": renderCode })[name](panel, d);
+}
+
+/* ---------- Drawing ---------- */
+function renderDrawing(p, d) {
+  const paper = h("div", { class: "paper" });
+  paper.innerHTML = d.svg;                                  // produced by our own compiler; colours are whitelisted
+  const reduction = d.ir_before_count ? Math.round(100 * (1 - d.ir_after_count / d.ir_before_count)) : 0;
+  const chips = [`IR ${fmtInt(d.ir_before_count)} to ${fmtInt(d.ir_after_count)}` + (reduction ? ` (${reduction}% fewer)` : "")];
+  if (d.run_stats.calls) chips.push(`${fmtInt(d.run_stats.calls)} calls, depth ${d.run_stats.max_depth}`);
+  chips.push(`${fmtInt(d.run_stats.steps)} statements run`);
+  p.append(h("div", { class: "toolbar" },
+    h("button", { class: "btn small", text: "Replay", onclick: () => replayLines($("svg", paper)) }),
+    h("button", { class: "btn small", text: "Download SVG", onclick: () => download("svg") }),
+    h("div", { class: "chips" }, chips.map(c => h("span", { class: "chip", text: c })))), paper);
+  if (!d.ir_after_count) paper.append(h("p", { class: "empty", text: "This program draws nothing yet. Add a forward command." }));
+}
+function replayLines(svg) {
+  stopAnim();
+  const lines = [...svg.querySelectorAll("line")];
+  if (!lines.length || reduceMotion()) return;
+  lines.forEach(l => l.style.opacity = 0);
+  const t0 = performance.now(), total = Math.min(4000, Math.max(1200, lines.length * 12));
+  const token = state.anim = {};
+  (function frame(now) {
+    if (state.anim !== token) return lines.forEach(l => l.style.opacity = "");
+    const k = Math.min(1, (now - t0) / total), shown = Math.floor(k * lines.length);
+    for (let i = 0; i < lines.length; i++) lines[i].style.opacity = i <= shown ? 1 : 0;
+    if (k < 1) requestAnimationFrame(frame); else { lines.forEach(l => l.style.opacity = ""); state.anim = null; }
+  })(t0);
+}
+function stopAnim() { state.anim = null; }
+
+/* ---------- Tokens ---------- */
+function renderTokens(p, d) {
+  p.append(h("p", { class: "note", text: `${fmtInt(d.token_count)} tokens. The lexer turns characters into these; whitespace and comments are dropped.` }));
+  const rows = d.tokens.map(t => h("tr", {}, h("td", { class: "mono", text: t.kind }), h("td", { class: "mono", text: t.value }), h("td", { class: "num", text: t.line })));
+  p.append(h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Token" }), h("th", { text: "Text" }), h("th", { class: "num", text: "Line" }))), h("tbody", {}, rows)));
+  if (d.token_count > d.tokens.length) p.append(h("p", { class: "note", text: `Showing the first ${fmtInt(d.tokens.length)} tokens.` }));
+}
+
+/* ---------- Syntax tree ---------- */
+function renderTree(p, d) {
+  let count = 0;
+  function build(node, depth) {
+    count++;
+    const [kw, ...rest] = node.label.split(" ");
+    const label = [h("span", { class: "kw", text: kw }), rest.length ? " " + rest.join(" ") : "", node.line ? h("span", { class: "ln", text: "line " + node.line }) : ""];
+    if (!node.children.length) return h("li", {}, h("div", { class: "leaf" }, label));
+    const det = h("details", { open: depth < 3 }, h("summary", {}, label), h("ul", {}, node.children.map(c => count > 4000 ? null : build(c, depth + 1))));
+    return h("li", {}, det);
+  }
+  const root = h("ul", { class: "tree" }, build(d.ast, 0));
+  p.append(h("div", { class: "toolbar" },
+    h("button", { class: "btn small", text: "Expand all", onclick: () => root.querySelectorAll("details").forEach(x => x.open = true) }),
+    h("button", { class: "btn small", text: "Collapse all", onclick: () => root.querySelectorAll("details").forEach(x => x.open = false) })),
+    h("p", { class: "note", text: "The parser's result. A procedure body, repeat body and each branch of an if are children of their statement." }), root);
+  if (count > 4000) p.append(h("p", { class: "note", text: "Large tree: showing the first 4,000 nodes." }));
+}
+
+/* ---------- Symbols ---------- */
+function renderSymbols(p, d) {
+  p.append(h("div", { class: "sub", text: "Global variables" }),
+    h("p", { class: "note", text: "Values the compiler can prove before running. A variable that changes inside a loop or branch, or comes from an argument, is unknown at compile time, so checks that need its value wait until the program runs." }));
+  if (!d.symbols.length) p.append(h("p", { class: "empty", text: "No global variables. Declare one with let size = 50." }));
+  else p.append(h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Name" }), h("th", { text: "Value at compile time" }), h("th", { class: "num", text: "Declared on line" }))),
+    h("tbody", {}, d.symbols.map(s => h("tr", {}, h("td", { class: "mono", text: s.name }),
+      h("td", { class: "mono", text: s.value === null ? "unknown" : fmt(s.value) }), h("td", { class: "num", text: s.line }))))));
+  p.append(h("div", { class: "sub", text: "Procedures" }));
+  if (!d.procs.length) p.append(h("p", { class: "empty", text: "No procedures. Define one with proc name(a, b) { ... } and run it with call name(1, 2)." }));
+  else p.append(h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Procedure" }), h("th", { text: "Parameters" }), h("th", { class: "num", text: "Defined on line" }), h("th", { class: "num", text: "Statements" }))),
+    h("tbody", {}, d.procs.map(s => h("tr", {}, h("td", { class: "mono", text: s.name }), h("td", { class: "mono", text: s.params.join(", ") || "none" }),
+      h("td", { class: "num", text: s.line }), h("td", { class: "num", text: s.statements }))))));
+  p.append(h("p", { class: "note", text: "A procedure sees its own parameters, its own locals and the globals declared above it. It never sees the variables of the code that called it." }));
+}
+
+/* ---------- IR ---------- */
+function irText(list) {
+  return list.map(i => i[0] === "LINE"
+    ? `LINE  (${fmt(i[1])}, ${fmt(i[2])}) to (${fmt(i[3])}, ${fmt(i[4])})  ${i[5]}`
+    : `MOVE  (${fmt(i[1])}, ${fmt(i[2])})`).join("\n");
+}
+function renderIR(p, d) {
+  p.append(h("div", { class: "sub", text: "What each optimization pass removed" }),
+    h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "Pass" }), h("th", { class: "num", text: "Before" }), h("th", { class: "num", text: "After" }), h("th", { class: "num", text: "Removed" }))),
+      h("tbody", {}, d.passes.map(x => h("tr", {}, h("td", { text: x.pass }), h("td", { class: "num", text: fmtInt(x.before) }), h("td", { class: "num", text: fmtInt(x.after) }),
+        h("td", { class: "num" + (x.before > x.after ? " good" : ""), text: fmtInt(x.before - x.after) }))))),
+    h("p", { class: "note", text: "Every pass keeps the drawing's geometry. Retraced segments and zero-length lines add no ink; a move that is immediately overwritten does nothing." }));
+  const col = (title, list, total) => h("div", {}, h("div", { class: "sub", text: `${title} (${fmtInt(total)})` }), h("pre", { class: "code", text: irText(list) || "(empty)" }),
+    total > list.length ? h("p", { class: "note", text: `Showing the first ${list.length}.` }) : null);
+  p.append(h("div", { class: "cols" }, col("Before optimization", d.ir_before, d.ir_before_count), col("After optimization", d.ir_after, d.ir_after_count)));
+}
+
+/* ---------- Plotter ---------- */
+function bboxOf(strokesList) {
+  let x0 = 0, y0 = 0, x1 = 0, y1 = 0;
+  for (const strokes of strokesList) for (const s of strokes) for (const [x, y] of s.points) { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); }
+  return { x0, y0, x1, y1 };
+}
+const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+function buildPlot(strokes, box, numbered) {
+  const w = Math.max(box.x1 - box.x0, 1), hgt = Math.max(box.y1 - box.y0, 1), pad = Math.max(w, hgt) * 0.05, sw = Math.max(w, hgt) / 220;
+  const svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("viewBox", `${box.x0 - pad} ${box.y0 - pad} ${w + 2 * pad} ${hgt + 2 * pad}`);
+  svg.setAttribute("role", "img");
+  const mk = (tag, attrs) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+  const items = []; let pos = [0, 0], cum = 0, upCum = 0;
+  strokes.forEach((s, i) => {
+    const gap = dist(pos, s.points[0]);
+    if (gap > 1e-6) {
+      const el = mk("line", { x1: pos[0], y1: pos[1], x2: s.points[0][0], y2: s.points[0][1], stroke: "#E4572E", "stroke-width": sw * 0.8, "stroke-dasharray": `${sw * 3} ${sw * 3}` });
+      svg.append(el); items.push({ el, kind: "up", start: cum, len: gap, upBefore: upCum }); cum += gap; upCum += gap;
+    }
+    let len = 0; for (let k = 1; k < s.points.length; k++) len += dist(s.points[k - 1], s.points[k]);
+    const el = mk("path", { d: "M" + s.points.map(q => q.join(" ")).join(" L"), fill: "none", stroke: COLORS[s.color] || "#000", "stroke-width": sw * 1.6, "stroke-linecap": "round", "stroke-linejoin": "round", pathLength: 1, "stroke-dasharray": 1, "stroke-dashoffset": 0 });
+    svg.append(el); items.push({ el, kind: "down", start: cum, len, upBefore: upCum }); cum += len;
+    if (numbered) {
+      svg.append(mk("circle", { cx: s.points[0][0], cy: s.points[0][1], r: sw * 2.2, fill: "#fff", stroke: "#14213D", "stroke-width": sw * 0.5 }));
+      const t = mk("text", { x: s.points[0][0], y: s.points[0][1] + sw * 0.9, "font-size": sw * 2.6, "text-anchor": "middle", fill: "#14213D", "font-family": "sans-serif" });
+      t.textContent = i + 1; svg.append(t);
+    }
+    pos = s.points[s.points.length - 1];
+  });
+  return { svg, items, total: cum, up: upCum };
+}
+function resetPlot(plot) { plot.items.forEach(it => { if (it.kind === "up") it.el.style.opacity = 0; else it.el.setAttribute("stroke-dashoffset", 1); }); }
+function showAll(plot) { plot.items.forEach(it => { if (it.kind === "up") it.el.style.opacity = 1; else it.el.setAttribute("stroke-dashoffset", 0); }); }
+
+function renderPlotter(p, d) {
+  const pl = d.plotter, S = pl.summary;
+  p.append(h("p", { class: "note", text: "A physical pen plotter spends time moving without drawing, and each colour change is a manual pen swap. The compiler can change the order and direction of strokes without changing what is drawn." }));
+  const row = (label, b, a, unit = "") => {
+    const ch = b === 0 ? "0%" : Math.round(100 * (a - b) / b) + "%";
+    return h("tr", {}, h("td", { text: label }), h("td", { class: "num", text: fmtInt(b) + unit }), h("td", { class: "num", text: fmtInt(a) + unit }), h("td", { class: "num" + (a < b ? " good" : ""), text: a === b ? "same" : ch }));
+  };
+  p.append(h("div", { class: "toolbar" },
+    h("label", { class: "check" }, h("input", { type: "checkbox", checked: state.groupColors, onchange: e => { state.groupColors = e.target.checked; run(); } }), "Group strokes by colour"),
+    h("span", { class: "note", style: "margin:0", text: S.group_colors ? "Fewer pen swaps; can lengthen travel." : "Only reorders within runs of one colour." })));
+  p.append(h("table", {}, h("thead", {}, h("tr", {}, h("th", { text: "" }), h("th", { class: "num", text: "Program order" }), h("th", { class: "num", text: "Optimized order" }), h("th", { class: "num", text: "Change" }))),
+    h("tbody", {},
+      row("Strokes", S.before.strokes, S.after.strokes),
+      row("Pen-down distance", S.before.draw_distance, S.after.draw_distance, " mm"),
+      row("Pen-up travel", Math.round(S.before.travel_distance), Math.round(S.after.travel_distance), " mm"),
+      row("Pen lifts", S.before.pen_lifts, S.after.pen_lifts),
+      row("Pen changes", S.before.pen_changes, S.after.pen_changes))));
+  if (S.skipped) p.append(h("p", { class: "note", text: "This drawing has too many strokes for the O(n squared) nearest-neighbour pass, so the order is unchanged." }));
+  if (!pl.drawn) { p.append(h("p", { class: "empty", text: "This drawing is too large to animate here. The numbers above are still exact." })); return; }
+  if (!pl.before.length) { p.append(h("p", { class: "empty", text: "No strokes to plot yet." })); return; }
+
+  const box = bboxOf([pl.before, pl.after]), numbered = pl.before.length <= 30;
+  const A = buildPlot(pl.before, box, numbered), B = buildPlot(pl.after, box, numbered);
+  const outA = h("output", { text: "" }), outB = h("output", { text: "" });
+  const panelFor = (title, plot, out) => h("div", { class: "plot" }, h("h3", { text: title }), h("div", { class: "paper" }, plot.svg), out);
+  p.append(h("div", { class: "toolbar", style: "margin-top:14px" },
+    h("button", { class: "btn small", text: "Replay at constant pen speed", onclick: () => replayPlots(A, B, outA, outB) }),
+    h("span", { class: "legend" }, h("span", {}, h("i"), "pen down"), h("span", {}, h("i", { class: "up" }), "pen up"))));
+  p.append(h("div", { class: "plots" }, panelFor("Program order", A, outA), panelFor("Optimized order", B, outB)));
+  outA.textContent = `Pen-up travel ${fmtInt(Math.round(A.up))} mm`; outB.textContent = `Pen-up travel ${fmtInt(Math.round(B.up))} mm`;
+}
+function replayPlots(A, B, outA, outB) {
+  stopAnim();
+  if (reduceMotion()) { showAll(A); showAll(B); return; }
+  resetPlot(A); resetPlot(B);
+  const speed = A.total / 6, t0 = performance.now(), token = state.anim = {};   // the slower plan takes 6 simulated seconds
+  const sims = [A, B].map((plot, i) => ({ plot, out: [outA, outB][i], idx: 0, done: false }));
+  (function frame(now) {
+    if (state.anim !== token) return;
+    const d = (now - t0) / 1000 * speed;
+    let alive = false;
+    for (const s of sims) {
+      if (s.done) continue;
+      const items = s.plot.items;
+      while (s.idx < items.length && d >= items[s.idx].start + items[s.idx].len) {
+        const it = items[s.idx]; if (it.kind === "up") it.el.style.opacity = 1; else it.el.setAttribute("stroke-dashoffset", 0); s.idx++;
+      }
+      let up = s.idx < items.length ? items[s.idx].upBefore : s.plot.up;
+      if (s.idx < items.length) {
+        const it = items[s.idx];
+        if (it.kind === "up") { it.el.style.opacity = 1; up += Math.max(0, d - it.start); }
+        else if (d > it.start) it.el.setAttribute("stroke-dashoffset", 1 - (d - it.start) / it.len);
+      }
+      if (s.idx >= items.length) { s.done = true; s.out.textContent = `Finished in ${(s.plot.total / speed).toFixed(1)} s. Pen-up travel ${fmtInt(Math.round(s.plot.up))} mm`; }
+      else { alive = true; s.out.textContent = `${(d / speed).toFixed(1)} s. Pen-up travel so far ${fmtInt(Math.round(up))} mm`; }
+    }
+    if (alive) requestAnimationFrame(frame); else state.anim = null;
+  })(t0);
+}
+
+/* ---------- Output code ---------- */
+function renderCode(p, d) {
+  const targets = [["svg", "SVG"], ["ps", "PostScript"], ["gcode", "G-code"]];
+  const info = d.code[state.codeTarget];
+  const seg = h("div", { class: "seg", role: "group", "aria-label": "Output format" }, targets.map(([k, label]) =>
+    h("button", { "aria-pressed": k === state.codeTarget, text: label, onclick: () => { state.codeTarget = k; renderTab("Output code"); } })));
+  const tools = [seg];
+  if (state.codeTarget === "gcode") tools.push(h("label", { class: "check" }, h("input", { type: "checkbox", checked: state.optimise, onchange: e => { state.optimise = e.target.checked; } }), "Optimize stroke order in the download"));
+  tools.push(h("button", { class: "btn small", text: "Copy", onclick: e => { navigator.clipboard?.writeText(info.text); e.target.textContent = "Copied"; setTimeout(() => e.target.textContent = "Copy", 1200); } }),
+    h("button", { class: "btn small", text: "Download", onclick: () => download(state.codeTarget) }));
+  const gnote = state.codeTarget === "gcode"
+    ? `${d.gcode_counts.draw_moves} drawing moves, ${d.gcode_counts.travel_moves} pen-up travel moves, ${d.gcode_counts.pen_swaps} pen swap pauses (M0).` : "";
+  p.append(h("div", { class: "toolbar" }, tools), gnote ? h("p", { class: "note", text: gnote }) : null,
+    h("pre", { class: "code", style: "max-height:none", text: info.text }),
+    info.truncated ? h("p", { class: "note", text: `Preview shows the first ${fmtInt(info.text.length)} of ${fmtInt(info.chars)} characters. Download has the full file.` }) : null);
+}
+async function download(target) {
+  const res = await fetch("/api/export", { method: "POST", body: JSON.stringify({ source: src.value, target, group_colors: state.groupColors, optimise: state.optimise }) });
+  if (!res.ok) return;
+  const blob = await res.blob(), a = h("a", { href: URL.createObjectURL(blob), download: "sketch." + (target === "ps" ? "ps" : target) });
+  document.body.append(a); a.click(); a.remove();
+}
+
+/* ---------- boot ---------- */
+async function boot() {
+  buildStrip(); buildTabs();
+  const examples = await (await fetch("/api/examples")).json();
+  const sel = $("#example");
+  for (const group of ["Programs", "Errors"]) {
+    const og = h("optgroup", { label: group === "Errors" ? "Programs with errors" : "Programs" });
+    examples.filter(e => e.group === group).forEach(e => og.append(h("option", { value: e.key, text: e.title })));
+    sel.append(og);
+  }
+  const load = () => { const e = examples.find(x => x.key === sel.value); src.value = e.source; src.scrollTop = 0; updateGutter(); run(); };
+  sel.addEventListener("change", load);
+  $("#run").addEventListener("click", run);
+  const first = new URLSearchParams(location.search).get("example") || "tree";
+  sel.value = examples.some(e => e.key === first) ? first : examples[0].key;
+  const tab = new URLSearchParams(location.search).get("tab");
+  if (TABS.includes(tab)) state.tab = tab, selectTab(tab);
+  load();
+}
+boot();
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+# Semantic error: wrong number of arguments.
+proc square(n) {
+    repeat 4 { forward n
+               turn 90 }
+}
+call square(10, 20)

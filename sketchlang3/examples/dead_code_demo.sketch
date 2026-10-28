@@ -1,0 +1,7 @@
+# Phase 2 optimizer demo: three consecutive "move" calls are dead code --
+# only the pen position from the LAST one before the next draw matters.
+move 10, 10
+move 50, 50
+move 100, 100
+pen black
+forward 40

@@ -1,0 +1,3 @@
+# Lexical error: '@' is not a valid character.
+pen red
+forward 10 @ 5

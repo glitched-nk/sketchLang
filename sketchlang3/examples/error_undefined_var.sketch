@@ -1,0 +1,3 @@
+# Semantic error demo: "radius" is never declared with "let".
+pen red
+forward radius

@@ -1,0 +1,9 @@
+# Semantic error (scope): 'size' is a parameter of outer(), so it is local to outer.
+# inner() cannot see the variables of whoever called it, only globals.
+proc inner() {
+    forward size
+}
+proc outer(size) {
+    call inner()
+}
+call outer(30)

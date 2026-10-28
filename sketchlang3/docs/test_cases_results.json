@@ -1,0 +1,425 @@
+[
+  {
+    "id": "V1",
+    "category": "valid",
+    "description": "Minimal program",
+    "source": "pen red\nforward 50",
+    "expected": "Compiles; 1 LINE of length 50",
+    "actual": "IR 1->1",
+    "passed": true
+  },
+  {
+    "id": "V2",
+    "category": "valid",
+    "description": "Square with repeat returns to start",
+    "source": "pen blue\nrepeat 4 { forward 100\n turn 90 }",
+    "expected": "Compiles; 4 LINEs, ends at origin",
+    "actual": "IR 4->4",
+    "passed": true
+  },
+  {
+    "id": "V3",
+    "category": "valid",
+    "description": "Operator precedence 2 + 3 * 4",
+    "source": "let x = 2 + 3 * 4\nforward x",
+    "expected": "Compiles; line length 14",
+    "actual": "IR 1->1",
+    "passed": true
+  },
+  {
+    "id": "V4",
+    "category": "valid",
+    "description": "Parentheses and unary minus",
+    "source": "forward -(2 + 3) * 2",
+    "expected": "Compiles; line length -10",
+    "actual": "IR 1->1",
+    "passed": true
+  },
+  {
+    "id": "V5",
+    "category": "valid",
+    "description": "Nested repeat 3 x 3",
+    "source": "repeat 3 { repeat 3 { forward 1 } }",
+    "expected": "Compiles; 9 LINEs",
+    "actual": "IR 9->1",
+    "passed": true
+  },
+  {
+    "id": "V6",
+    "category": "valid",
+    "description": "Procedure with parameter",
+    "source": "proc box(s) { repeat 4 { forward s\n turn 90 } }\npen red\ncall box(25)",
+    "expected": "Compiles; 4 LINEs, 1 call",
+    "actual": "IR 4->4, 1 call(s), depth 1",
+    "passed": true
+  },
+  {
+    "id": "V7",
+    "category": "valid",
+    "description": "if / else-if / else chain",
+    "source": "let a = 2\nif a == 1 { forward 1 } else if a == 2 { forward 2 } else { forward 3 }",
+    "expected": "Compiles; takes the middle branch (length 2)",
+    "actual": "IR 1->1",
+    "passed": true
+  },
+  {
+    "id": "V8",
+    "category": "valid",
+    "description": "Recursion with base case",
+    "source": "proc f(n) { if n > 0 { forward 1\n call f(n - 1) } }\ncall f(5)",
+    "expected": "Compiles; 5 LINEs, depth 6",
+    "actual": "IR 5->1, 6 call(s), depth 6",
+    "passed": true
+  },
+  {
+    "id": "V9",
+    "category": "valid",
+    "description": "All eight colours accepted",
+    "source": "pen red\nforward 1\npen green\nforward 1\npen blue\nforward 1\npen black\nforward 1\npen orange\nforward 1\npen purple\nforward 1\npen brown\nforward ...",
+    "expected": "Compiles; 8 LINEs",
+    "actual": "IR 8->8",
+    "passed": true
+  },
+  {
+    "id": "V10",
+    "category": "valid",
+    "description": "Local variable shadows global without changing it",
+    "source": "let n = 5\nproc f() { let n = 1\n forward n }\ncall f()\nforward n",
+    "expected": "Compiles; local 1 then global 5",
+    "actual": "IR 2->1, 1 call(s), depth 1",
+    "passed": true
+  },
+  {
+    "id": "E1",
+    "category": "invalid",
+    "description": "Illegal character",
+    "source": "pen red\nforward 10 @ 5",
+    "expected": "lexical error containing 'line 2'",
+    "actual": "lexical error: Lexical error: unexpected character '@' on line 2",
+    "passed": true
+  },
+  {
+    "id": "E2",
+    "category": "invalid",
+    "description": "Missing closing brace",
+    "source": "repeat 4 {\n forward 10",
+    "expected": "syntax error containing \"missing '}'\"",
+    "actual": "syntax error: Syntax error: missing '}' for repeat opened on line 1",
+    "passed": true
+  },
+  {
+    "id": "E3",
+    "category": "invalid",
+    "description": "move without comma",
+    "source": "move 10 20",
+    "expected": "syntax error containing 'COMMA'",
+    "actual": "syntax error: Syntax error: expected COMMA but got NUMBER on line 1",
+    "passed": true
+  },
+  {
+    "id": "E4",
+    "category": "invalid",
+    "description": "if without comparison",
+    "source": "if 1 { forward 1 }",
+    "expected": "syntax error containing 'comparison'",
+    "actual": "syntax error: Syntax error: expected a comparison operator (==, !=, <, >, <=, >=) but got LBRACE on line 1",
+    "passed": true
+  },
+  {
+    "id": "E5",
+    "category": "invalid",
+    "description": "proc defined inside a block",
+    "source": "repeat 2 { proc f() { forward 1 } }",
+    "expected": "syntax error containing 'top level'",
+    "actual": "syntax error: Syntax error: 'proc' definitions are only allowed at the top level (found inside a block on line 1)",
+    "passed": true
+  },
+  {
+    "id": "E6",
+    "category": "invalid",
+    "description": "Unknown colour",
+    "source": "pen skyblue",
+    "expected": "semantic error containing 'unknown color'",
+    "actual": "semantic error: Semantic error (line 1): unknown color 'skyblue'. Valid colors: ['black', 'blue', 'brown', 'green', 'orange', 'pink', 'purple', 'red']",
+    "passed": true
+  },
+  {
+    "id": "E7",
+    "category": "invalid",
+    "description": "Undeclared variable",
+    "source": "forward radius",
+    "expected": "semantic error containing \"'radius'\"",
+    "actual": "semantic error: Semantic error (line 1): variable 'radius' used before it is declared",
+    "passed": true
+  },
+  {
+    "id": "E8",
+    "category": "invalid",
+    "description": "Call to undefined procedure",
+    "source": "call ghost(1)",
+    "expected": "semantic error containing 'undefined procedure'",
+    "actual": "semantic error: Semantic error (line 1): call to undefined procedure 'ghost'",
+    "passed": true
+  },
+  {
+    "id": "E9",
+    "category": "invalid",
+    "description": "Wrong argument count",
+    "source": "proc f(a) { forward a }\ncall f(1, 2)",
+    "expected": "semantic error containing 'expects 1'",
+    "actual": "semantic error: Semantic error (line 2): procedure 'f' expects 1 argument(s) but 2 given",
+    "passed": true
+  },
+  {
+    "id": "E10",
+    "category": "invalid",
+    "description": "Duplicate procedure",
+    "source": "proc f() { forward 1 }\nproc f() { forward 2 }",
+    "expected": "semantic error containing 'already defined'",
+    "actual": "semantic error: Semantic error (line 2): procedure 'f' is already defined on line 1",
+    "passed": true
+  },
+  {
+    "id": "E11",
+    "category": "invalid",
+    "description": "Callee cannot see caller's local",
+    "source": "proc inner() { forward size }\nproc outer(size) { call inner() }\ncall outer(3)",
+    "expected": "semantic error containing \"'size'\"",
+    "actual": "semantic error: Semantic error (line 1): variable 'size' used before it is declared",
+    "passed": true
+  },
+  {
+    "id": "E12",
+    "category": "invalid",
+    "description": "Local does not leak out of procedure",
+    "source": "proc f() { let t = 1 }\ncall f()\nforward t",
+    "expected": "semantic error containing \"'t'\"",
+    "actual": "semantic error: Semantic error (line 3): variable 't' used before it is declared",
+    "passed": true
+  },
+  {
+    "id": "E13",
+    "category": "invalid",
+    "description": "Constant negative repeat count",
+    "source": "repeat -3 { forward 1 }",
+    "expected": "semantic error containing 'positive whole number'",
+    "actual": "semantic error: Semantic error (line 1): repeat count must be a positive whole number, got -3.0",
+    "passed": true
+  },
+  {
+    "id": "E14",
+    "category": "invalid",
+    "description": "Constant division by zero",
+    "source": "let z = 0\nforward 5 / z",
+    "expected": "semantic error containing 'division by zero'",
+    "actual": "semantic error: Semantic error (line 2): division by zero",
+    "passed": true
+  },
+  {
+    "id": "E15",
+    "category": "invalid",
+    "description": "Variable declared in only one if-branch",
+    "source": "if 1 < 2 { let t = 1 }\nforward t",
+    "expected": "semantic error containing \"'t'\"",
+    "actual": "semantic error: Semantic error (line 2): variable 't' used before it is declared",
+    "passed": true
+  },
+  {
+    "id": "R1",
+    "category": "runtime",
+    "description": "Recursion with no base case",
+    "source": "proc f(n) { call f(n + 1) }\ncall f(1)",
+    "expected": "runtime error containing 'maximum call depth'",
+    "actual": "runtime error: Runtime error (line 1): maximum call depth of 100 exceeded while calling 'f' (infinite recursion?)",
+    "passed": true
+  },
+  {
+    "id": "R2",
+    "category": "runtime",
+    "description": "Division by zero via parameter",
+    "source": "proc r(a, b) { forward a / b }\ncall r(1, 0)",
+    "expected": "runtime error containing 'division by zero'",
+    "actual": "runtime error: Runtime error (line 1): division by zero",
+    "passed": true
+  },
+  {
+    "id": "R3",
+    "category": "runtime",
+    "description": "Fractional repeat count via parameter",
+    "source": "proc f(n) { repeat n { forward 1 } }\ncall f(2.5)",
+    "expected": "runtime error containing 'positive whole number'",
+    "actual": "runtime error: Runtime error (line 1): repeat count must be a positive whole number, got 2.5",
+    "passed": true
+  },
+  {
+    "id": "R4",
+    "category": "runtime",
+    "description": "Runaway nested loops hit the step budget",
+    "source": "repeat 100000 { repeat 100000 { let a = 1 } }",
+    "expected": "runtime error containing 'step limit'",
+    "actual": "runtime error: Runtime error (line 1): step limit of 2,000,000 statements exceeded (endless or extremely long loop?)",
+    "passed": true
+  },
+  {
+    "id": "R5",
+    "category": "runtime",
+    "description": "Drawing exceeds instruction budget",
+    "source": "repeat 1000 { repeat 1000 { forward 1 } }",
+    "expected": "runtime error containing 'instructions'",
+    "actual": "runtime error: Runtime error (line 1): drawing exceeds 200,000 instructions",
+    "passed": true
+  },
+  {
+    "id": "B1",
+    "category": "boundary",
+    "description": "Empty source",
+    "source": "",
+    "expected": "Compiles; compiles to a valid empty SVG",
+    "actual": "IR 0->0",
+    "passed": true
+  },
+  {
+    "id": "B2",
+    "category": "boundary",
+    "description": "Comments and blank lines only",
+    "source": "# just a comment\n\n   \n# another",
+    "expected": "Compiles; empty drawing",
+    "actual": "IR 0->0",
+    "passed": true
+  },
+  {
+    "id": "B3",
+    "category": "boundary",
+    "description": "forward 0 draws nothing",
+    "source": "pen red\nforward 0",
+    "expected": "Compiles; 1 IR line before, 0 after optimisation, no <line> in SVG",
+    "actual": "IR 1->0",
+    "passed": true
+  },
+  {
+    "id": "B4",
+    "category": "boundary",
+    "description": "Huge coordinate (1e9)",
+    "source": "pen red\nforward 1000000000",
+    "expected": "Compiles; compiles",
+    "actual": "IR 1->1",
+    "passed": true
+  },
+  {
+    "id": "B5",
+    "category": "boundary",
+    "description": "Recursion depth exactly at the limit (100)",
+    "source": "proc f(n) { if n > 0 { call f(n - 1) } }\ncall f(99)",
+    "expected": "Compiles; max depth 100, no error",
+    "actual": "IR 0->0, 100 call(s), depth 100",
+    "passed": true
+  },
+  {
+    "id": "B6",
+    "category": "boundary",
+    "description": "Recursion one past the limit (101)",
+    "source": "proc f(n) { if n > 0 { call f(n - 1) } }\ncall f(100)",
+    "expected": "runtime error containing 'maximum call depth'",
+    "actual": "runtime error: Runtime error (line 1): maximum call depth of 100 exceeded while calling 'f' (infinite recursion?)",
+    "passed": true
+  },
+  {
+    "id": "B7",
+    "category": "boundary",
+    "description": "150 levels of nested repeat",
+    "source": "repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat 1 {repeat ...",
+    "expected": "Compiles; 1 LINE",
+    "actual": "IR 1->1",
+    "passed": true
+  },
+  {
+    "id": "B8",
+    "category": "boundary",
+    "description": "Windows (CRLF) line endings",
+    "source": "pen red\r\nforward 5\r\nturn 90\r\nforward 5\r\n",
+    "expected": "Compiles; 2 LINEs",
+    "actual": "IR 2->2",
+    "passed": true
+  },
+  {
+    "id": "B9",
+    "category": "boundary",
+    "description": "Leading-dot number '.5' is illegal",
+    "source": "forward .5",
+    "expected": "lexical error containing \"'.'\"",
+    "actual": "lexical error: Lexical error: unexpected character '.' on line 1",
+    "passed": true
+  },
+  {
+    "id": "B12",
+    "category": "boundary",
+    "description": "Numeric overflow (400-digit literal)",
+    "source": "forward 100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000...",
+    "expected": "runtime error containing 'overflow'",
+    "actual": "runtime error: Runtime error (line 1): numeric overflow -- a value became infinite or undefined",
+    "passed": true
+  },
+  {
+    "id": "B10",
+    "category": "boundary",
+    "description": "Back-tracking is NOT merged (Phase 2 bug regression)",
+    "source": "pen red\nforward 100\nforward -50",
+    "expected": "Compiles; 2 segments kept after optimisation",
+    "actual": "IR 2->2",
+    "passed": true
+  },
+  {
+    "id": "B11",
+    "category": "boundary",
+    "description": "5,000 statements in one file",
+    "source": "pen red\nforward 1\nturn 1\nforward 1\nturn 1\nforward 1\nturn 1\nforward 1\nturn 1\nforward 1\nturn 1\nforward 1\nturn 1\nforward 1\nturn 1\nforward 1\n...",
+    "expected": "Compiles; 5000 LINE/TURN statements compile",
+    "actual": "IR 2500->360",
+    "passed": true
+  },
+  {
+    "id": "C1",
+    "category": "complex",
+    "description": "Koch snowflake depth 3 (recursion + if/else)",
+    "source": "proc koch(len, depth) {\n if depth == 0 { forward len } else {\n  call koch(len / 3, depth - 1)\n  turn -60\n  call koch(len / 3, depth - 1)\n...",
+    "expected": "Compiles; 192 segments, 3-fold symmetric (returns to start)",
+    "actual": "IR 192->192, 255 call(s), depth 4",
+    "passed": true
+  },
+  {
+    "id": "C2",
+    "category": "complex",
+    "description": "Recursive tree: optimiser halves the IR",
+    "source": "proc b(len, d) { if d > 0 { forward len\n turn 25\n call b(len * 0.7, d - 1)\n turn -50\n call b(len * 0.7, d - 1)\n turn 25\n forward -len } }...",
+    "expected": "Compiles; 254 -> 127 IR instructions",
+    "actual": "IR 254->127, 255 call(s), depth 8",
+    "passed": true
+  },
+  {
+    "id": "C3",
+    "category": "complex",
+    "description": "Spiral: loop-carried variable",
+    "source": "let step = 4\npen purple\nrepeat 40 { forward step\n turn 20\n let step = step + 2 }",
+    "expected": "Compiles; 40 segments of strictly growing length",
+    "actual": "IR 40->40",
+    "passed": true
+  },
+  {
+    "id": "C4",
+    "category": "complex",
+    "description": "Plotter: mirrored boxes",
+    "source": "# Plotter demo: boxes are drawn in MIRRORED pairs (left side, then right side),\n# so the pen jumps across the page between every box. The...",
+    "expected": "Compiles; travel reduced by > 80%",
+    "actual": "IR 100->100, 20 call(s), depth 1",
+    "passed": true
+  },
+  {
+    "id": "C5",
+    "category": "complex",
+    "description": "Plotter: checkerboard",
+    "source": "# Plotter demo 2: a 6x6 checkerboard of boxes drawn row by row, alternating\n# red and blue -- 30 pen changes if drawn in program order (3...",
+    "expected": "Compiles; pen changes 30 -> 1",
+    "actual": "IR 180->180, 36 call(s), depth 1",
+    "passed": true
+  }
+]

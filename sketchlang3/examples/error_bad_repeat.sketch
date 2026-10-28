@@ -1,0 +1,5 @@
+# Semantic error demo: repeat count must be a positive whole number.
+pen blue
+repeat -3 {
+    forward 10
+}

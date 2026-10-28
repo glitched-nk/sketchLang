@@ -1,0 +1,28 @@
+# Plotter demo 2: a 6x6 checkerboard of boxes drawn row by row, alternating
+# red and blue -- 30 pen changes if drawn in program order (36 boxes, 5 row ends repeat a colour).
+proc box(s) {
+    repeat 4 {
+        forward s
+        turn 90
+    }
+}
+
+let flip = 0
+let y = 0
+repeat 6 {
+    let x = 0
+    repeat 6 {
+        move x, y
+        if flip == 0 {
+            pen red
+            let flip = 1
+        } else {
+            pen blue
+            let flip = 0
+        }
+        call box(18)
+        let x = x + 30
+    }
+    let flip = 1 - flip
+    let y = y + 30
+}

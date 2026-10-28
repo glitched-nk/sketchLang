@@ -1,0 +1,21 @@
+# Recursion + if/else: the Koch curve. 'depth' controls the detail.
+# Each level replaces a segment by four segments one third as long.
+proc koch(len, depth) {
+    if depth == 0 {
+        forward len
+    } else {
+        call koch(len / 3, depth - 1)
+        turn -60
+        call koch(len / 3, depth - 1)
+        turn 120
+        call koch(len / 3, depth - 1)
+        turn -60
+        call koch(len / 3, depth - 1)
+    }
+}
+
+pen blue
+repeat 3 {
+    call koch(240, 3)
+    turn 120
+}

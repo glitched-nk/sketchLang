@@ -1,0 +1,21 @@
+# Procedures with parameters: a flower made of 12 rotated petals.
+# 'petal' is drawn by calling 'arc_side' twice -- procedures can call procedures.
+proc arc_side(len) {
+    repeat 6 {
+        forward len
+        turn 10
+    }
+}
+
+proc petal(len) {
+    call arc_side(len)
+    turn 60
+    call arc_side(len)
+    turn 120
+}
+
+pen purple
+repeat 12 {
+    call petal(14)
+    turn 30
+}

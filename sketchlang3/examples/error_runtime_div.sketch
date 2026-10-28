@@ -1,0 +1,7 @@
+# Runtime error: the divisor is a parameter, unknown at compile time,
+# so division by zero is only caught when the procedure actually runs.
+proc ratio(a, b) {
+    forward a / b
+}
+call ratio(10, 2)
+call ratio(10, 0)

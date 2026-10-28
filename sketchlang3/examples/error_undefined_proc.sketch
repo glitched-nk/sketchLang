@@ -1,0 +1,3 @@
+# Semantic error: calling a procedure that was never defined.
+pen red
+call hexagon(40)

@@ -1,0 +1,8 @@
+# Runtime error: recursion with no base case. The checker cannot prove this
+# at compile time, so the executor stops it at the call-depth limit.
+proc spin(n) {
+    forward n
+    turn 10
+    call spin(n + 1)
+}
+call spin(1)

@@ -1,0 +1,18 @@
+# A recursive tree. Each branch is drawn out and then BACK ("forward -len"),
+# so every segment is drawn twice. The optimiser's duplicate-segment pass
+# removes the retraced half of the ink.
+proc branch(len, depth) {
+    if depth > 0 {
+        forward len
+        turn 25
+        call branch(len * 0.7, depth - 1)
+        turn -50
+        call branch(len * 0.7, depth - 1)
+        turn 25
+        forward -len
+    }
+}
+
+pen green
+turn -90
+call branch(60, 7)
